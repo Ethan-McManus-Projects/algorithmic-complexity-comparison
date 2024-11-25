@@ -1,0 +1,27 @@
+{
+    "tasks": [
+        {
+            "type": "cppbuild",
+            "label": "Build Project",
+            "command": "C:/msys64/ucrt64/bin/g++.exe",
+            "args": [
+                "-fdiagnostics-color=always",
+                "-g",
+                "${workspaceFolder}/c++Tester.cpp",
+                "${workspaceFolder}/c++Main.cpp",
+                "-o",
+                "${workspaceFolder}/c++Tester.exe" // Specify the output executable name
+            ],
+            "options": {
+                "cwd": "C:/msys64/ucrt64/bin"
+            },
+            "problemMatcher": ["$gcc"],
+            "group": {
+                "kind": "build",
+                "isDefault": true
+            },
+            "detail": "Builds the full project."
+        }
+    ],
+    "version": "2.0.0"
+}
