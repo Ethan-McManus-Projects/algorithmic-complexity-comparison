@@ -1,3 +1,7 @@
+#define NOMINMAX
+#define WIN32_LEAN_AND_MEAN
+#define NO_MIN_MAX
+
 #include <iostream>
 #include <vector>
 #include <random>
@@ -9,8 +13,19 @@
 #include <algorithm>
 #include "c++Main.h"
 #include "c++BinaryTreeNode.h"
+#include "MemoryTracker.h"
+#include <windows.h>
+#include <psapi.h>
 
 using namespace std;
+
+void* operator new(size_t size) {
+    return MemoryTracker::allocate(size);
+}
+
+void operator delete(void* ptr, size_t size) noexcept {
+    MemoryTracker::deallocate(ptr, size);
+}
 
 class Tester {
 public:
@@ -19,17 +34,17 @@ public:
         vector<tuple<vector<int>, int, vector<int>>> test_cases;
         random_device rd;
         mt19937 gen(rd());
-        uniform_int_distribution<> dist_length(2, 100);
-        uniform_int_distribution<long long> dist_value(-1000000000LL, 1000000000LL);
+        uniform_int_distribution<> rand_length(2, 100);
+        uniform_int_distribution<long long> rand_value(-1000000000LL, 1000000000LL);
 
         for (int i = 0; i < num_cases; ++i) {
-            int length = dist_length(gen);
+            int length = rand_length(gen);
             unordered_set<long long> unique_values;
             vector<int> nums;
 
             // generate unique numbers
             while (nums.size() < length) {
-                long long num = dist_value(gen);
+                long long num = rand_value(gen);
                 if (unique_values.find(num) == unique_values.end()) {
                     unique_values.insert(num);
                     nums.push_back(num);
@@ -37,10 +52,10 @@ public:
             }
 
             // generate target number
-            long long num1 = dist_value(gen);
+            long long num1 = rand_value(gen);
             long long num2;
             do {
-                num2 = dist_value(gen);
+                num2 = rand_value(gen);
             } while (num1 == num2 || unique_values.find(num2) != unique_values.end());
             int target = num1 + num2;
 
@@ -81,14 +96,14 @@ public:
         vector<tuple<vector<int>, vector<int>>> test_cases;
         random_device rd;
         mt19937 gen(rd());
-        uniform_int_distribution<> dist_length(1, 300);
-        uniform_int_distribution<long long> dist_value(-1000000000LL, 1000000000LL);
+        uniform_int_distribution<> rand_length(1, 300);
+        uniform_int_distribution<long long> rand_value(-1000000000LL, 1000000000LL);
 
         for (int i = 0; i < num_cases; ++i) {
-            int length = dist_length(gen);
+            int length = rand_length(gen);
             vector<int> nums(length);
             for (int& num : nums) {
-                num = dist_value(gen);
+                num = rand_value(gen);
             }
             vector<int> sorted_nums = nums;
             sort(sorted_nums.begin(), sorted_nums.end());
@@ -102,19 +117,19 @@ public:
         vector<tuple<vector<int>, vector<int>, vector<int>, int, int>> test_cases;
         random_device rd;
         mt19937 gen(rd());
-        uniform_int_distribution<> dist_length(1, 1000);
-        uniform_int_distribution<long long> dist_value(-1000000000LL, 1000000000LL);
+        uniform_int_distribution<> rand_length(1, 1000);
+        uniform_int_distribution<long long> rand_value(-1000000000LL, 1000000000LL);
 
         for (int i = 0; i < num_cases; ++i) {
-            int length1 = dist_length(gen);
-            int length2 = dist_length(gen);
+            int length1 = rand_length(gen);
+            int length2 = rand_length(gen);
 
             vector<int> nums1(length1 + length2, 0);
             unordered_set<int> unique_values;
             for (int j = 0; j < length1; ++j) {
                 int num;
                 do {
-                    num = dist_value(gen);
+                    num = rand_value(gen);
                 } while (unique_values.find(num) != unique_values.end());
                 unique_values.insert(num);
                 nums1[j] = num;
@@ -125,7 +140,7 @@ public:
             vector<int> nums2(length2);
             for (int& num : nums2) {
                 do {
-                    num = dist_value(gen);
+                    num = rand_value(gen);
                 } while (unique_values.find(num) != unique_values.end());
                 unique_values.insert(num);
             }
@@ -151,12 +166,12 @@ public:
         vector<tuple<BinaryTreeNode*, int>> test_cases;
         random_device rd;
         mt19937 gen(rd());
-        uniform_int_distribution<> dist_depth(2, max_depth);
-        uniform_int_distribution<> dist_choice(0, 1);
+        uniform_int_distribution<> rand_depth(2, max_depth);
+        uniform_int_distribution<> rand_choice(0, 1);
 
         for (int i = 0; i < num_cases; ++i) {
             BinaryTreeNode* root = new BinaryTreeNode(1);
-            int min_depth = dist_depth(gen);
+            int min_depth = rand_depth(gen);
 
             vector<BinaryTreeNode*> current_level_nodes = {root};
 
@@ -170,7 +185,7 @@ public:
             }
 
             BinaryTreeNode* leaf_node = current_level_nodes[0];
-            if (dist_choice(gen)) {
+            if (rand_choice(gen)) {
                 leaf_node->insertLeft(min_depth);
             } else {
                 leaf_node->insertRight(min_depth);
@@ -182,11 +197,11 @@ public:
             while (current_depth <= max_depth) {
                 vector<BinaryTreeNode*> next_level_nodes;
                 for (BinaryTreeNode* node : current_level_nodes) {
-                    if (dist_choice(gen)) {
+                    if (rand_choice(gen)) {
                         node->insertLeft(current_depth);
                         next_level_nodes.push_back(node->left);
                     }
-                    if (dist_choice(gen)) {
+                    if (rand_choice(gen)) {
                         node->insertRight(current_depth);
                         next_level_nodes.push_back(node->right);
                     }
@@ -204,41 +219,41 @@ public:
     }
     
     static void run_sort_tests(const vector<tuple<vector<int>, vector<int>>>& test_cases, vector<int> (*sort_func)(const vector<int>&), const string& func_name) {
+
         int passed_cases = 0;
+
+        // reset tracker memory
+        MemoryTracker::reset();
+        size_t startMemory = MemoryTracker::getPeakMemoryUsage();
 
         auto start = chrono::high_resolution_clock::now();
 
-        for (size_t i = 0; i < test_cases.size(); ++i) {
-            const auto& [nums, expected] = test_cases[i];
+        for (const auto& [nums, expected] : test_cases) {
             auto sorted = sort_func(nums);
-
             if (sorted == expected) {
                 passed_cases++;
-            } else {
-                cout << "Test case " << i + 1 << " failed:\n";
-                cout << "  Input: ";
-                for (const auto& num : nums) cout << num << " ";
-                cout << "\n  Expected: ";
-                for (const auto& num : expected) cout << num << " ";
-                cout << "\n  Sorted: ";
-                for (const auto& num : sorted) cout << num << " ";
-                cout << "\n";
-                break;
             }
         }
 
         auto end = chrono::high_resolution_clock::now();
+        size_t peakMemory = MemoryTracker::getPeakMemoryUsage();
+
         chrono::duration<double> elapsed = end - start;
 
-        cout << "\nFunction: " << func_name << "\n";
-        cout << "Passed " << passed_cases << " out of " << test_cases.size() << " test cases.\n";
-        cout << "Total time taken: " << elapsed.count() << " seconds\n";
-        cout << "Average time per test case: " << (elapsed.count() / test_cases.size()) << " seconds\n";
+        std::cout << "\nFunction: " << func_name << "\n";
+        std::cout << "Passed " << passed_cases << " out of " << test_cases.size() << " test cases.\n";
+        std::cout << "Total time taken: " << elapsed.count() << " seconds\n";
+        std::cout << "Average time per test case: " << (elapsed.count() / test_cases.size()) << " seconds\n";
+        std::cout << "Memory Usage:\n";
+        std::cout << "  Peak: " << peakMemory / 1024.0 / 1024.0 << " MB\n";
     }
 
     static void two_sum_run_tests(const vector<tuple<vector<int>, int, vector<int>>>& test_cases, vector<int> (*two_sum_func)(const vector<int>&, int), const string& func_name) {
+
         int passed_cases = 0;
 
+        MemoryTracker::reset();
+        size_t startMemory = MemoryTracker::getPeakMemoryUsage();
         auto start = chrono::high_resolution_clock::now();
 
         for (size_t i = 0; i < test_cases.size(); ++i) {
@@ -246,7 +261,7 @@ public:
             auto result = two_sum_func(nums, target);
 
             if (!result.empty() && ((result[0] == expected[0] && result[1] == expected[1]) ||
-                (result[0] == expected[1] && result[1] == expected[0]))) {
+                                    (result[0] == expected[1] && result[1] == expected[0]))) {
                 passed_cases++;
             } else {
                 cout << "Test case " << i + 1 << " failed:\n";
@@ -264,17 +279,24 @@ public:
         }
 
         auto end = chrono::high_resolution_clock::now();
+        size_t peakMemory = MemoryTracker::getPeakMemoryUsage();
         chrono::duration<double> elapsed = end - start;
 
         cout << "\nFunction: " << func_name << "\n";
         cout << "Passed " << passed_cases << " out of " << test_cases.size() << " test cases.\n";
         cout << "Total time taken: " << elapsed.count() << " seconds\n";
         cout << "Average time per test case: " << (elapsed.count() / test_cases.size()) << " seconds\n";
+        cout << "Memory Usage:\n";
+        cout << "  Peak: " << peakMemory / 1024.0 / 1024.0 << " MB\n";
     }
 
     static void run_array_merge_tests(const vector<tuple<vector<int>, vector<int>, vector<int>, int, int>>& test_cases, vector<int> (*merge_func)(vector<int>&, const vector<int>&, int, int), const string& func_name) {
+
         int passed_cases = 0;
 
+        MemoryTracker::reset();
+        size_t startMemory = MemoryTracker::getPeakMemoryUsage();
+        
         auto start = chrono::high_resolution_clock::now();
 
         for (size_t i = 0; i < test_cases.size(); ++i) {
@@ -299,16 +321,23 @@ public:
         }
 
         auto end = chrono::high_resolution_clock::now();
+        size_t peakMemory = MemoryTracker::getPeakMemoryUsage();
         chrono::duration<double> elapsed = end - start;
 
         cout << "\nFunction: " << func_name << "\n";
         cout << "Passed " << passed_cases << " out of " << test_cases.size() << " test cases.\n";
         cout << "Total time taken: " << elapsed.count() << " seconds\n";
         cout << "Average time per test case: " << (elapsed.count() / test_cases.size()) << " seconds\n";
+        cout << "Memory Usage:\n";
+        cout << "  Peak: " << peakMemory / 1024.0 / 1024.0 << " MB\n";
     }
 
     static void run_minimum_binary_tree_depth_tests(const vector<tuple<BinaryTreeNode*, int>>& test_cases, int (*minDepth)(BinaryTreeNode*), const string& func_name) {
+
         int passed_cases = 0;
+
+        MemoryTracker::reset();
+        size_t startMemory = MemoryTracker::getPeakMemoryUsage();
 
         auto start = chrono::high_resolution_clock::now();
 
@@ -328,12 +357,15 @@ public:
         }
 
         auto end = chrono::high_resolution_clock::now();
+        size_t peakMemory = MemoryTracker::getPeakMemoryUsage();
         chrono::duration<double> elapsed = end - start;
 
         cout << "\nFunction: " << func_name << "\n";
         cout << "Passed " << passed_cases << " out of " << test_cases.size() << " test cases.\n";
         cout << "Total time taken: " << elapsed.count() << " seconds\n";
         cout << "Average time per test case: " << (elapsed.count() / test_cases.size()) << " seconds\n";
+        cout << "Memory Usage:\n";
+        cout << "  Peak: " << peakMemory / 1024.0 / 1024.0 << " MB\n";
     }
 
     int validateMinimumDepth(BinaryTreeNode* root) {
